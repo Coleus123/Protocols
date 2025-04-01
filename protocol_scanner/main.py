@@ -1,32 +1,45 @@
 import threading
 from socket import *
 
-
-def check_port(host, port_num, protocol_type):
-    connection = socket(AF_INET, SOCK_STREAM)
-    connection.settimeout(0.1)
+def scan_tcp(ip, port_num):
+    sock = socket(AF_INET, SOCK_STREAM)
+    sock.settimeout(0.1)
     try:
-        if protocol_type == "TCP":
-            status = connection.connect_ex((host, port_num))
-            if status == 0:
-                print(f"\nПорт {port_num}: Доступен (TCP)")
-            else:
-                print(f"\nПорт {port_num}: Недоступен (TCP)")
-        elif protocol_type == "UDP":
-            connection.connect_ex((host, port_num))
-            try:
-                connection.sendto(b'\x11', (host, port_num))
-                print(f"\nПорт {port_num}: Доступен (UDP)")
-            except:
-                print(f"\nПорт {port_num}: Недоступен (UDP)")
+        status = sock.connect_ex((ip, port_num))
+        if status == 0:
+            print(f"Порт {port_num}: Доступен (TCP)\n")
+        else:
+            print(f"Порт {port_num}: Недоступен (TCP)\n")
     finally:
-        connection.close()
+        sock.close()
 
 
-def parallel_port_check(host, first_port, last_port, protocol_type):
+def scan_udp(ip, port_num):
+    sock = socket(AF_INET, SOCK_DGRAM)
+    sock.settimeout(0.1)
+    try:
+        dns_query = b'\x00' * 12
+        sock.sendto(dns_query, (ip, port_num))
+        sock.recvfrom(1024)
+        print(f"{port_num}: UDP порт открыт\n")
+    except:
+        print(f"{port_num}: UDP порт закрыт\n")
+    finally:
+        sock.close()
+
+
+def parallel_port_check(ip, first_port, last_port, protocol_type):
     for current_port in range(first_port, last_port + 1):
-        thread = threading.Thread(target=check_port, args=(host, current_port, protocol_type))
+        thread = threading.Thread(target=scanner, args=(ip, current_port, protocol_type))
         thread.start()
+
+
+def scanner(ip, port_num, protocol_type):
+    match protocol_type:
+        case "TCP":
+            scan_tcp(ip, port_num)
+        case "UDP":
+            scan_udp(ip, port_num)
 
 
 def main():
