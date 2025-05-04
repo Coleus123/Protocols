@@ -15,17 +15,19 @@ def scan_tcp(ip, port_num):
 
 
 def scan_udp(ip, port_num):
-    sock = socket(AF_INET, SOCK_DGRAM)
-    sock.settimeout(0.1)
+    udp_sock = socket(AF_INET, SOCK_DGRAM)
+    udp_sock.settimeout(0.5)
+    icmp_sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)
+    icmp_sock.settimeout(1.0)
     try:
-        dns_query = b'\x00' * 12
-        sock.sendto(dns_query, (ip, port_num))
-        sock.recvfrom(1024)
-        print(f"{port_num}: UDP порт открыт\n")
-    except:
-        print(f"{port_num}: UDP порт закрыт\n")
+        udp_sock.sendto(b'', (ip, port_num))
+        udp_sock.close()
+        icmp_sock.recvfrom(1024)
+        print(f"Порт {port_num}: Закрыт (UDP)\n")
+    except timeout:
+        print(f"Порт {port_num}: Открыт (UDP)\n")
     finally:
-        sock.close()
+        icmp_sock.close()
 
 
 def parallel_port_check(ip, first_port, last_port, protocol_type):
